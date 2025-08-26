@@ -253,7 +253,7 @@ if ('serviceWorker' in navigator) {
 
   function init(){
     const isFile = location.protocol === 'file:';
-    $('#envNote').textContent = isFile ? 'Archivo local: la cámara puede NO funcionar.' : 'Origen seguro: habilita la cámara para escanear.';
+    $('#envNote').textContent = isFile ? 'Archivo local: la cámara puede NO funcionar.' : 'Origen seguro: cámara habilitada.';
     if('BarcodeDetector' in window){
       try{ detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','qr_code']}); $('#scanSupport').textContent='Lector con cámara disponible.'; }
       catch{ $('#scanSupport').textContent='Lector con cámara no disponible; usa entrada manual.'; }
@@ -338,11 +338,21 @@ if ('serviceWorker' in navigator) {
       const tr=document.createElement('tr');
       tr.innerHTML = `<td>${c.suite||''}</td><td>${c.codigo||''}</td>
       <td>
-        <button class="ghost" onclick="(function(){document.getElementById('sSuite').value='${(c.suite||'').replace(/'/g,"&#39;")}';document.getElementById('sCodigo').value='${(c.codigo||'').replace(/'/g,"&#39;")}';})();">Editar</button>
-        <button class="danger" onclick="(function(){ if(confirm('¿Eliminar esta suite/tarjeta?')){ const all=${JSON.stringify(DB.cards)}; const id='${c.id}'; const keep = (JSON.parse(localStorage.getItem('dcal_cards')||'[]')).filter(x=>x.id!==id); localStorage.setItem('dcal_cards', JSON.stringify(keep)); const loans = (JSON.parse(localStorage.getItem('dcal_loans')||'[]')).filter(l=>l.cardId!==id); localStorage.setItem('dcal_loans', JSON.stringify(loans)); location.reload(); } })()">Eliminar</button>
+        <button class="ghost btnEditSuite" data-id="${c.id}">Editar</button>
+        <button class="danger btnDelSuite" data-id="${c.id}">Eliminar</button>
       </td>`;
       tb.appendChild(tr);
     }
+    $$('.btnEditSuite').forEach(b=>b.addEventListener('click',()=>{
+      const id=b.dataset.id; const c=DB.cards.find(x=>x.id===id); if(!c) return;
+      $('#sSuite').value=c.suite||''; $('#sCodigo').value=c.codigo||'';
+    }));
+    $$('.btnDelSuite').forEach(b=>b.addEventListener('click',()=>{
+      const id=b.dataset.id; if(!confirm('¿Eliminar esta suite/tarjeta?')) return;
+      DB.cards = DB.cards.filter(x=>x.id!==id);
+      DB.loans = DB.loans.filter(l=>l.cardId!==id);
+      renderSuites(); renderActivos(); renderHistorial(); refreshIngresos();
+    }));
   }
   function addOrUpdateSuite(){
     const suite = $('#sSuite').value.trim(); const codigo=$('#sCodigo').value.trim();
@@ -418,7 +428,7 @@ if ('serviceWorker' in navigator) {
     renderActivos(); renderHistorial(); refreshIngresos();
   }
 
-  /* ---- ESCANER ---- */
+  /* ---- ESCÁNER ---- */
   async function startCam(){
     try{
       if(running) return;
@@ -516,8 +526,11 @@ if ('serviceWorker' in navigator) {
   function refreshIngresos(){
     const cm = DB.currentMatch?.id || null;
     const ingresoPartido = DB.loans.filter(l=>l.matchId===cm).reduce((a,b)=>a+(b.neto||0),0);
-    const d = new Date(); const ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    const ingresoMes = DB.loans.filter(l=>(l.entregadoAt||'').startsWith(ym)).reduce((a,b)=>a+(b.neto||0),0);
+    const d = new Date();
+    const ingresoMes = DB.loans.filter(l=>{
+      const t=new Date(l.entregadoAt||Date.now());
+      return t.getMonth()===d.getMonth() && t.getFullYear()===d.getFullYear();
+    }).reduce((a,b)=>a+(b.neto||0),0);
     $('#ingresoPartido').textContent = money(ingresoPartido);
     $('#ingresoMes').textContent = money(ingresoMes);
   }
