@@ -4,31 +4,89 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Control de Tarjetas – Deportivo Cali (PWA Offline)</title>
+
+  <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0B8F3B">
+
   <style>
-    :root{ --green:#0B8F3B; --green-900:#075C2A; --green-100:#E9F6EE; --bg:#f5f7f6; --text:#0f172a; --muted:#64748b; --card:#ffffff; --danger:#c1121f; }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;background:var(--bg);color:var(--text)}
-    header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:linear-gradient(90deg,var(--green), var(--green-900));color:#fff;position:sticky;top:0;z-index:5}
-    header img{height:52px;width:auto;border-radius:8px;background:#fff;object-fit:contain;padding:4px}
-    .title{font-weight:800}
-    .wrap{max-width:1100px;margin:18px auto;padding:0 12px}
-    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-    button{background:var(--green);color:#fff;border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
-    button.secondary{background:#0c4a6e} button.ghost{background:#fff;color:var(--green);border:1px solid var(--green)} button.danger{background:var(--danger)} button:disabled{opacity:.55}
-    input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:14px}
-    .card{background:var(--card);border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:0 2px 18px rgba(0,0,0,.03)}
-    .grid{display:grid;gap:14px} .grid.cols-2{grid-template-columns:1fr} @media(min-width:960px){.grid.cols-2{grid-template-columns:1fr 1fr}}
-    table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px dashed #e5e7eb;font-size:14px} th{font-size:12px;text-transform:uppercase;color:#475569;text-align:left}
-    .help{font-size:12px;color:#475569} .muted{color:#64748b} .pill{padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700;background:#eef;border:1px solid #dde}
-    .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:99;display:none}
+    :root{
+      --green:#0B8F3B; --green-900:#075C2A; --bg:#f5f7f6; --text:#0f172a;
+      --card:#ffffff; --danger:#c1121f;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    /* iPhone evita zoom en inputs */
+    @supports (-webkit-touch-callout: none){
+      input, select, textarea, button { font-size:16px; }
+    }
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;
+      background:var(--bg); color:var(--text);
+      overflow-x:hidden; /* evita barra horizontal */
+    }
+
+    header{
+      display:flex; align-items:center; gap:12px;
+      padding:12px; background:linear-gradient(90deg,var(--green),var(--green-900));
+      color:#fff; position:sticky; top:0; z-index:5;
+    }
+    header img{
+      height:44px; width:auto; border-radius:8px; background:#fff; padding:4px;
+      max-width:24vw; /* nunca más ancho que pantalla */
+    }
+    .title{font-weight:800; line-height:1.1}
+
+    .wrap{max-width:1100px; margin:14px auto; padding:0 10px}
+
+    /* Toolbar responsive */
+    .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0}
+    .toolbar input{flex:1 1 220px; min-width:0}
+
+    button{
+      background:var(--green); color:#fff; border:0; border-radius:10px;
+      padding:10px 12px; font-weight:700; cursor:pointer;
+    }
+    button.secondary{background:#0c4a6e}
+    button.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+    button.danger{background:var(--danger)}
+    button:disabled{opacity:.55}
+
+    input,select,textarea{
+      width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; font-size:14px;
+    }
+
+    .card{
+      background:var(--card); border:1px solid #e5e7eb; border-radius:14px; padding:12px;
+      box-shadow:0 2px 18px rgba(0,0,0,.03); margin-bottom:12px;
+    }
+
+    /* Grid: 1 columna en móvil, 2 en desktop */
+    .grid{display:grid; gap:12px}
+    .grid.cols-2{grid-template-columns:1fr}
+    @media (min-width:960px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+
+    /* Tablas móviles con scroll horizontal */
+    .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+    table{width:100%; border-collapse:collapse; min-width:720px;}
+    th,td{padding:8px; border-bottom:1px dashed #e5e7eb; font-size:14px; text-align:left}
+    th{font-size:12px; text-transform:uppercase; color:#475569}
+    td,th{word-break:break-word}
+
+    .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+      background:#111827;color:#fff;padding:10px 12px;border-radius:10px;
+      box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:99;display:none}
     .toast.show{display:block}
-    .modal{position:fixed;inset:0;background:rgba(2,6,23,.5);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
-    .modal.open{display:flex}
-    .panel{background:#fff;border-radius:16px;max-width:720px;width:100%;padding:16px}
+
+    /* Scanner/Vídeo dentro del ancho */
+    #video{width:100%; height:auto; border-radius:12px; display:none; max-width:100vw}
+
+    footer{color:#64748b; text-align:center; margin:20px 0}
   </style>
 </head>
 <body>
@@ -39,6 +97,7 @@
       <div class="muted" id="envNote"></div>
     </div>
   </header>
+
   <div class="wrap">
     <div class="toolbar">
       <button id="btnNuevoPartido">➕ Nuevo partido</button>
@@ -52,37 +111,61 @@
       </label>
     </div>
 
-    <section class="card">
-      <h2>Partido actual</h2>
-      <div id="partidoActual" class="help"></div>
-      <button id="btnCambiarPartido" class="ghost">Cambiar</button>
-    </section>
+    <div class="grid cols-2">
+      <section class="card">
+        <h2>Partido actual</h2>
+        <div id="partidoActual" class="help"></div>
+        <div style="margin-top:8px">
+          <button id="btnCambiarPartido" class="ghost">Cambiar</button>
+        </div>
+      </section>
 
-    <section class="card">
-      <h2>Escanear / entrada manual</h2>
-      <input id="manualCode" placeholder="Código de barras (manual)">
-      <input id="manualSuite" placeholder="Suite (ej. E-039)">
-      <div style="margin-top:8px">
-        <button id="btnStart">Iniciar cámara</button>
-        <button id="btnStop" class="ghost">Detener</button>
-        <button id="btnProcesarManual" class="secondary">Procesar</button>
-      </div>
-      <video id="video" playsinline autoplay muted style="width:100%;margin-top:8px;border-radius:12px;display:none"></video>
-    </section>
+      <section class="card" id="scannerCard">
+        <h2>Escanear / entrada manual</h2>
+        <div class="help" id="scanSupport"></div>
+        <div class="grid" style="margin-top:8px">
+          <div><input id="manualCode" placeholder="Código de barras (manual)"></div>
+          <div><input id="manualSuite" placeholder="Suite (ej. E-039)"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button id="btnStart">Iniciar cámara</button>
+          <button id="btnStop" class="ghost">Detener</button>
+          <button id="btnProcesarManual" class="secondary">Procesar</button>
+        </div>
+        <video id="video" playsinline autoplay muted></video>
+      </section>
+    </div>
 
     <section class="card">
       <h2>Préstamos activos</h2>
-      <table id="tblActivos"><thead><tr><th>Fecha entrega</th><th>Suite</th><th>Código</th><th>Nombre</th><th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Acciones</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap">
+        <table id="tblActivos">
+          <thead><tr>
+            <th>Fecha entrega</th><th>Suite</th><th>Código</th><th>Nombre</th>
+            <th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Acciones</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="card">
       <h2>Historial</h2>
-      <table id="tblHistorial"><thead><tr><th>Fecha</th><th>Suite</th><th>Código</th><th>Nombre</th><th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Estado</th></tr></thead><tbody></tbody></table>
+      <div class="table-wrap">
+        <table id="tblHistorial">
+          <thead><tr>
+            <th>Fecha</th><th>Suite</th><th>Código</th><th>Nombre</th>
+            <th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Estado</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
-    <footer class="muted" style="text-align:center;margin:20px 0">PWA instalable. En iPhone abre por HTTPS y usa “Añadir a pantalla de inicio”.</footer>
+    <footer>PWA instalable. En iPhone abre por HTTPS y usa “Añadir a pantalla de inicio”.</footer>
   </div>
 
+  <!-- Modales -->
   <div class="modal" id="modalPartido"><div class="panel">
     <h3>Nuevo / Editar partido</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -93,7 +176,9 @@
       <div style="flex:1"><label>Fecha</label><input id="pFecha" type="date"></div>
       <div style="flex:1"><label>Hora</label><input id="pHora" type="time"></div>
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button id="pGuardar">Guardar</button><button id="pCerrar" class="ghost">Cancelar</button></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="pGuardar">Guardar</button><button id="pCerrar" class="ghost">Cancelar</button>
+    </div>
   </div></div>
 
   <div class="modal" id="modalTarjeta"><div class="panel">
@@ -102,7 +187,9 @@
       <div style="flex:1"><label>Suite</label><input id="tSuite" placeholder="E-039"></div>
       <div style="flex:1"><label>Código de barras</label><input id="tCodigo" placeholder="Escanea o escribe"></div>
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button id="tGuardar">Guardar</button><button id="tCerrar" class="ghost">Cerrar</button></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="tGuardar">Guardar</button><button id="tCerrar" class="ghost">Cerrar</button>
+    </div>
   </div></div>
 
   <div class="modal" id="modalPrestar"><div class="panel">
@@ -120,23 +207,29 @@
       <div style="flex:1"><label>Partido</label><select id="prPartido"></select></div>
     </div>
     <div style="margin-top:8px"><label>Observaciones</label><textarea id="prObs" rows="2"></textarea></div>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button id="prConfirmar">Confirmar préstamo</button><button id="prCerrar" class="ghost">Cancelar</button></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="prConfirmar">Confirmar préstamo</button><button id="prCerrar" class="ghost">Cancelar</button>
+    </div>
   </div></div>
 
   <div class="modal" id="modalConfirm"><div class="panel">
     <h3>Confirmar devolución</h3>
     <p>¿Marcar como devuelta la tarjeta <strong id="devSuite"></strong> (código <strong id="devCodigo"></strong>)?</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="devOk">Sí, devolver</button><button id="devCancel" class="ghost">Cancelar</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button id="devOk">Sí, devolver</button><button id="devCancel" class="ghost">Cancelar</button>
+    </div>
   </div></div>
 
   <div id="toast" class="toast"></div>
 
 <script>
+/* Registrar Service Worker (PWA) */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
+
 (function(){
   const $ = s=>document.querySelector(s);
   const $$ = s=>Array.from(document.querySelectorAll(s));
@@ -146,6 +239,7 @@ if ('serviceWorker' in navigator) {
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const fmt = iso => new Date(iso).toLocaleString();
   const nowISO = ()=> new Date().toISOString();
+
   const DB = {
     get cards(){return load('dcal_cards',[])}, set cards(v){save('dcal_cards',v)},
     get matches(){return load('dcal_matches',[])}, set matches(v){save('dcal_matches',v)},
@@ -154,59 +248,114 @@ if ('serviceWorker' in navigator) {
     set currentMatchId(v){save('dcal_currentMatchId',v)},
     get logo(){return localStorage.getItem('dcal_logo')}, set logo(v){localStorage.setItem('dcal_logo',v)}
   };
+
   let stream=null, detector=null, running=false, rafId=null, lastScan='';
+
   function init(){
     const isFile = location.protocol === 'file:';
-    $('#envNote').textContent = isFile ? 'Archivo local: la cámara puede NO funcionar por seguridad del navegador.' : 'Origen seguro: habilita la cámara para escanear.';
+    $('#envNote').textContent = isFile ? 'Archivo local: la cámara puede NO funcionar.' : 'Origen seguro: cámara habilitada.';
     const lg = DB.logo; if(lg){ $('#logo').src = lg }
+
     if('BarcodeDetector' in window){
-      try{ detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','qr_code']}); }
-      catch{ }
+      try{ detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','qr_code']}); $('#scanSupport').textContent='Lector con cámara disponible.'; }
+      catch{ $('#scanSupport').textContent='Lector con cámara no disponible; usa entrada manual.'; }
+    } else {
+      $('#scanSupport').textContent='Sin lector en vivo; usa entrada manual.';
     }
+
     byId('btnNuevoPartido', openPartido);
     byId('btnCambiarPartido', openPartido);
     byId('pGuardar', savePartido);
     byId('pCerrar', ()=>closeModal('#modalPartido'));
+
     byId('btnAgregarTarjeta', ()=>openTarjeta());
     byId('tGuardar', saveTarjeta);
     byId('tCerrar', ()=>closeModal('#modalTarjeta'));
+
     byId('btnStart', startCam);
     byId('btnStop', stopCam);
     byId('btnProcesarManual', processManual);
+
     byId('btnExportCSV', exportCSV);
     byId('btnBackup', backupJSON);
+
     $('#logoFile').addEventListener('change', onLogoUpload);
+
     byId('prConfirmar', confirmarPrestamo);
     byId('prCerrar', ()=>closeModal('#modalPrestar'));
     byId('devOk', doDevolver);
     byId('devCancel', ()=>closeModal('#modalConfirm'));
+
     $('#q').addEventListener('input', ()=>{ renderActivos(); renderHistorial(); });
+
     renderPartido(); renderActivos(); renderHistorial();
   }
   function byId(id,fn){ const el=document.getElementById(id); if(el) el.addEventListener('click', fn); }
-  function renderPartido(){ const m = DB.currentMatch; const el=$('#partidoActual'); if(!m){ el.textContent='No hay partido seleccionado. Crea uno nuevo.'; return } const f=new Date(m.fecha).toLocaleDateString(); el.innerHTML = `<strong>${m.local}</strong> vs <strong>${m.visitante}</strong> — <span class="muted">${f} ${m.hora?('· '+m.hora):''}</span>`; }
-  function renderActivos(){ const q = $('#q').value.trim().toLowerCase(); const tb=$('#tblActivos tbody'); tb.innerHTML=''; for(const l of DB.loans.filter(x=>!x.devueltoAt)){ const c = DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; const str = `${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue; const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt(l.entregadoAt)}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td><button class="ghost devol" data-id="${l.id}">Devolver</button></td>`; tb.appendChild(tr) } $$('.devol').forEach(b=>b.addEventListener('click',()=>confirmDevolver(b.dataset.id))); }
-  function renderHistorial(){ const q = $('#q').value.trim().toLowerCase(); const tb=$('#tblHistorial tbody'); tb.innerHTML=''; for(const l of [...DB.loans].sort((a,b)=>new Date(b.entregadoAt)-new Date(a.entregadoAt))){ const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; const estado=l.devueltoAt?'<span class="pill" style="background:#ecfeff;border-color:#99f6e4;color:#0f766e">Devuelto</span>':'<span class="pill" style="background:#fff0f1;border-color:#fecdd3;color:#9f1239">Prestado</span>'; const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue; const tr=document.createElement('tr'); tr.innerHTML=`<td>${fmt(l.entregadoAt)}${l.devueltoAt?('<br><span class="muted">⇢ '+fmt(l.devueltoAt)+'</span>'):''}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td>${estado}</td>`; tb.appendChild(tr) } }
+
+  function renderPartido(){
+    const m = DB.currentMatch; const el=$('#partidoActual');
+    if(!m){ el.textContent='No hay partido seleccionado. Crea uno nuevo.'; return }
+    const f=new Date(m.fecha).toLocaleDateString();
+    el.innerHTML = `<strong>${m.local}</strong> vs <strong>${m.visitante}</strong> — <span class="muted">${f} ${m.hora?('· '+m.hora):''}</span>`;
+  }
+  function renderActivos(){
+    const q = $('#q').value.trim().toLowerCase(); const tb=$('#tblActivos tbody'); tb.innerHTML='';
+    for(const l of DB.loans.filter(x=>!x.devueltoAt)){
+      const c = DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{};
+      const str = `${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
+      const tr=document.createElement('tr'); tr.innerHTML=
+        `<td>${fmt(l.entregadoAt)}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td><button class="ghost devol" data-id="${l.id}">Devolver</button></td>`;
+      tb.appendChild(tr);
+    }
+    $$('.devol').forEach(b=>b.addEventListener('click',()=>confirmDevolver(b.dataset.id)));
+  }
+  function renderHistorial(){
+    const q = $('#q').value.trim().toLowerCase(); const tb=$('#tblHistorial tbody'); tb.innerHTML='';
+    for(const l of [...DB.loans].sort((a,b)=>new Date(b.entregadoAt)-new Date(a.entregadoAt))){
+      const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{};
+      const estado=l.devueltoAt?'<span class="pill" style="background:#ecfeff;border:1px solid #99f6e4;color:#0f766e;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Devuelto</span>':'<span class="pill" style="background:#fff0f1;border:1px solid #fecdd3;color:#9f1239;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Prestado</span>';
+      const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
+      const tr=document.createElement('tr'); tr.innerHTML=
+        `<td>${fmt(l.entregadoAt)}${l.devueltoAt?('<br><span class="muted">⇢ '+fmt(l.devueltoAt)+'</span>'):''}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td>${estado}</td>`;
+      tb.appendChild(tr);
+    }
+  }
+
+  // Partidos
   function openPartido(){ const m=DB.currentMatch; $('#pLocal').value=m?.local||'Deportivo Cali'; $('#pVisitante').value=m?.visitante||''; $('#pFecha').valueAsDate = m?.fecha?new Date(m.fecha):new Date(); $('#pHora').value=m?.hora||''; openModal('#modalPartido') }
   function savePartido(){ const local=$('#pLocal').value.trim()||'Deportivo Cali'; const visitante=$('#pVisitante').value.trim()||'—'; const fecha=$('#pFecha').value?new Date($('#pFecha').value).toISOString():nowISO(); const hora=$('#pHora').value||''; const curr=DB.currentMatch; if(curr){ Object.assign(curr,{local,visitante,fecha,hora}); DB.matches = DB.matches.map(x=>x.id===curr.id?curr:x); } else { const id=uid(); const m={id,local,visitante,fecha,hora}; DB.matches=[...DB.matches,m]; DB.currentMatchId=id; } renderPartido(); loadPartidosSelect(); closeModal('#modalPartido') }
   function loadPartidosSelect(){ const sel=$('#prPartido'); sel.innerHTML=''; for(const m of DB.matches){ const o=document.createElement('option'); o.value=m.id; o.textContent=`${m.local} vs ${m.visitante} (${new Date(m.fecha).toLocaleDateString()})`; sel.appendChild(o) } if(DB.currentMatch) sel.value=DB.currentMatch.id }
+
+  // Tarjetas
   function openTarjeta(suite='',codigo=''){ $('#tSuite').value=suite; $('#tCodigo').value=codigo; openModal('#modalTarjeta') }
   function saveTarjeta(){ const suite=$('#tSuite').value.trim(); const codigo=$('#tCodigo').value.trim(); if(!suite||!codigo){toast('Suite y código son obligatorios');return} let card = DB.cards.find(c=>c.codigo===codigo || c.suite.toLowerCase()===suite.toLowerCase()); if(card){ card.suite=suite; card.codigo=codigo; DB.cards = DB.cards.map(x=>x.id===card.id?card:x) } else { DB.cards=[...DB.cards,{id:uid(),suite,codigo}] } closeModal('#modalTarjeta') }
+
+  // Préstamos / Devolución
   let pendingCard=null, pendingLoanId=null;
   function openPrestar(card){ pendingCard=card; $('#prestarTitle').textContent='Prestar tarjeta'; $('#prSuite').value=card.suite; $('#prCodigo').value=card.codigo; $('#prNombre').value=''; $('#prCedula').value=''; $('#prTelefono').value=''; $('#prObs').value=''; loadPartidosSelect(); openModal('#modalPrestar') }
-  function confirmarPrestamo(){ if(!pendingCard) return; const nombre=$('#prNombre').value.trim(); const cedula=$('#prCedula').value.trim(); const telefono=$('#prTelefono').value.trim(); if(!nombre||!cedula){toast('Nombre y cédula son obligatorios');return} const matchId=$('#prPartido').value || (DB.currentMatch?.id??null); const loan={id:uid(), cardId: pendingCard.id, matchId, nombre, cedula, telefono, obs:$('#prObs').value.trim(), entregadoAt: nowISO(), devueltoAt:null}; DB.loans=[loan, ...DB.loans]; renderActivos(); renderHistorial(); closeModal('#modalPrestar') }
+  function confirmarPrestamo(){ if(!pendingCard) return; const nombre=$('#prNombre').value.trim(); const cedula=$('#prCedula').value.trim(); const telefono=$('#prTelefono').value.trim(); if(!nombre||!cedula){toast('Nombre y cédula son obligatorios');return} const matchId=$('#prPartido').value || (DB.currentMatch?.id??null); const loan={id:uid(), cardId: pendingCard.id, matchId, nombre, cedula, telefono, obs:$('#prObs').value.trim(), entregadoAt: nowISO(), devueltoAt:null}; DB.loans=[loan, ...DB.loans]; renderActivos(); renderHistorial(); toast('Préstamo registrado'); closeModal('#modalPrestar') }
   function confirmDevolver(id){ const l=DB.loans.find(x=>x.id===id); if(!l) return; const c=DB.cards.find(x=>x.id===l.cardId)||{suite:'?',codigo:'?'}; pendingLoanId=id; $('#devSuite').textContent=c.suite; $('#devCodigo').textContent=c.codigo; openModal('#modalConfirm') }
-  function doDevolver(){ if(!pendingLoanId) return; DB.loans = DB.loans.map(l=> l.id===pendingLoanId ? {...l, devueltoAt: nowISO()} : l); renderActivos(); renderHistorial(); closeModal('#modalConfirm') }
-  async function startCam(){ try{ if(running) return; if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Cámara no soportada'); return } stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); const v=$('#video'); v.srcObject=stream; await v.play(); v.style.display='block'; running=true; lastScan=''; if('BarcodeDetector' in window && detector){ scanLoop(); } } catch(e){ toast('No se pudo acceder a la cámara') } }
+  function doDevolver(){ if(!pendingLoanId) return; DB.loans = DB.loans.map(l=> l.id===pendingLoanId ? {...l, devueltoAt: nowISO()} : l); renderActivos(); renderHistorial(); toast('Devolución registrada'); closeModal('#modalConfirm') }
+
+  // Scanner
+  async function startCam(){ try{ if(running) return; if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Cámara no soportada'); return } stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); const v=$('#video'); v.srcObject=stream; await v.play(); v.style.display='block'; running=true; lastScan=''; if('BarcodeDetector' in window && detector){ scanLoop(); } else { toast('Cámara encendida (sin lector); usa entrada manual.')} } catch(e){ toast('No se pudo acceder a la cámara') } }
   function stopCam(){ running=false; if(rafId) cancelAnimationFrame(rafId); const v=$('#video'); if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null } v.removeAttribute('srcObject'); v.style.display='none' }
   async function scanLoop(){ if(!running||!detector) return; try{ const codes = await detector.detect($('#video')); if(codes && codes.length){ const val=(codes[0].rawValue||'').trim(); if(val && val!==lastScan){ lastScan=val; handleScan(val,null) } } }catch(e){} rafId = requestAnimationFrame(scanLoop) }
+
   function processManual(){ const code=$('#manualCode').value.trim(); const suite=$('#manualSuite').value.trim(); if(!code && !suite){ toast('Ingresa el código o la suite'); return } handleScan(code||null, suite||null) }
   function handleScan(code,suite){ let card=null; if(code){ card=DB.cards.find(c=>c.codigo===code) } if(!card && suite){ card=DB.cards.find(c=>c.suite.toLowerCase()===suite.toLowerCase()) } if(!card){ if(!suite){ const s=prompt('Tarjeta no registrada. Escribe la suite para asociar:','E-'); if(!s) return; suite=s.trim() } if(!code){ const c=prompt('Código de barras (o deja vacío):',''); if(c) code=c.trim() } openTarjeta(suite||'', code||''); return } const activo = DB.loans.find(l=>l.cardId===card.id && !l.devueltoAt); if(activo){ confirmDevolver(activo.id) } else { openPrestar(card) } }
-  function exportCSV(){ const rows=[['Fecha entrega','Fecha devolución','Suite','Código','Nombre','Cédula','Teléfono','Partido','Observaciones']]; for(const l of DB.loans){ const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; rows.push([ l.entregadoAt?new Date(l.entregadoAt).toLocaleString():'', l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'', c.suite||'', c.codigo||'', l.nombre||'', l.cedula||'', l.telefono||'', `${m.local||''} vs ${m.visitante||''}`, l.obs||'' ]) } const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='prestamos_suites.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); }
-  function backupJSON(){ const data={cards:DB.cards,matches:DB.matches,loans:DB.loans,currentMatchId:load('dcal_currentMatchId',null)}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup_suites.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); }
-  function onLogoUpload(e){ const f=e.target.files && e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ DB.logo=fr.result; $('#logo').src=DB.logo; }; fr.readAsDataURL(f); e.target.value='' }
+
+  // Exportar / Respaldo
+  function exportCSV(){ const rows=[['Fecha entrega','Fecha devolución','Suite','Código','Nombre','Cédula','Teléfono','Partido','Observaciones']]; for(const l of DB.loans){ const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; rows.push([ l.entregadoAt?new Date(l.entregadoAt).toLocaleString():'', l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'', c.suite||'', c.codigo||'', l.nombre||'', l.cedula||'', l.telefono||'', `${m.local||''} vs ${m.visitante||''}`, l.obs||'' ]) } const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='prestamos_suites.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('CSV generado') }
+  function backupJSON(){ const data={cards:DB.cards,matches:DB.matches,loans:DB.loans,currentMatchId:load('dcal_currentMatchId',null)}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup_suites.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('Respaldo descargado') }
+
+  // Logo
+  function onLogoUpload(e){ const f=e.target.files && e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ DB.logo=fr.result; $('#logo').src=DB.logo; toast('Logo guardado') }; fr.readAsDataURL(f); e.target.value='' }
+
+  // Modales
   function openModal(sel){ document.querySelector(sel).classList.add('open') }
   function closeModal(sel){ document.querySelector(sel).classList.remove('open') }
+
   document.addEventListener('DOMContentLoaded', init);
 })();
 </script>
