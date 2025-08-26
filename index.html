@@ -32,9 +32,11 @@
 
     .table-wrap{ width:100% }
     table{ width:100%; border-collapse:collapse }
-    th,td{ padding:8px; border-bottom:1px dashed #e5e7eb; font-size:14px; text-align:left; word-break:break-word; white-space:normal }
+    th,td{ padding:10px 8px; border-bottom:1px dashed #e5e7eb; font-size:15px; text-align:left; word-break:break-word; white-space:normal; vertical-align:top }
     th{ font-size:12px; text-transform:uppercase; color:#475569 }
-    @media (max-width:420px){ .col-cedula, .col-telefono, .col-partido { display:none } th,td{ font-size:13px } }
+
+    .pill{background:#ecfeff;border:1px solid #99f6e4;color:#0f766e;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700}
+    .pill.red{background:#fff0f1;border:1px solid #fecdd3;color:#9f1239}
 
     .toast{ position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.25); z-index:99; display:none }
     .toast.show{display:block}
@@ -119,14 +121,8 @@
       <div class="table-wrap">
         <table id="tblActivos">
           <thead><tr>
-            <th class="col-fecha">Fecha entrega</th>
-            <th class="col-suite">Suite</th>
-            <th class="col-codigo">Código</th>
-            <th class="col-nombre">Nombre</th>
-            <th class="col-cedula">Cédula</th>
-            <th class="col-telefono">Teléfono</th>
-            <th class="col-partido">Partido</th>
-            <th class="col-acciones">Acciones</th>
+            <th>Detalle</th>
+            <th>Acciones</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -138,17 +134,9 @@
       <div class="table-wrap">
         <table id="tblHistorial">
           <thead><tr>
-            <th class="col-fecha">Fecha</th>
-            <th class="col-suite">Suite</th>
-            <th class="col-codigo">Código</th>
-            <th class="col-nombre">Nombre</th>
-            <th class="col-cedula">Cédula</th>
-            <th class="col-telefono">Teléfono</th>
-            <th class="col-partido">Partido</th>
-            <th>Precio</th>
-            <th>Descuento</th>
-            <th>Neto</th>
-            <th class="col-estado">Estado</th>
+            <th>Detalle</th>
+            <th>Estado</th>
+            <th>Acciones</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -235,9 +223,9 @@ if ('serviceWorker' in navigator) {
   const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
   const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)); return v??d}catch{return d}}
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-  const fmt = iso => new Date(iso).toLocaleString();
   const nowISO = ()=> new Date().toISOString();
   const money = n => (new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})).format(Math.max(0,Math.round(n||0)));
+  const shortDate = iso => { const d=new Date(iso); const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${yy}`; };
 
   const DB = {
     get cards(){return load('dcal_cards',[])}, set cards(v){save('dcal_cards',v)},
@@ -458,65 +446,42 @@ if ('serviceWorker' in navigator) {
     rafId = requestAnimationFrame(scanLoop);
   }
 
-  function processManual(){
-    const code=$('#manualCode').value.trim(); const suite=$('#manualSuite').value.trim();
-    if(!code && !suite){ toast('Ingresa el código o la suite'); return }
-    handleScan(code||null, suite||null);
-  }
-  function handleScan(code,suite){
-    let card=null;
-    if(code){ card=DB.cards.find(c=>c.codigo===code) }
-    if(!card && suite){ card=DB.cards.find(c=>c.suite.toLowerCase()===suite.toLowerCase()) }
-    if(!card){
-      if(!suite){ const s=prompt('Tarjeta no registrada. Escribe la suite para asociar:','E-'); if(!s) return; suite=s.trim() }
-      if(!code){ const c=prompt('Código de barras (o deja vacío):',''); if(c) code=c.trim() }
-      openTarjeta(suite||'', code||''); return
-    }
-    const activo = DB.loans.find(l=>l.cardId===card.id && !l.devueltoAt);
-    if(activo){ confirmDevolver(activo.id) } else { openPrestar(card) }
-  }
-
-  /* ---- RENDER TABLAS ---- */
+  /* ---- RENDER TABLAS SIMPLIFICADAS ---- */
   function renderActivos(){
-    const q = ($('#q').value||'').trim().toLowerCase(); const tb=$('#tblActivos tbody'); tb.innerHTML='';
+    const q = ($('#q').value||'').trim().toLowerCase();
+    const tb=$('#tblActivos tbody'); tb.innerHTML='';
     for(const l of DB.loans.filter(x=>!x.devueltoAt)){
-      const c = DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{};
-      const str = `${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
-      const tr=document.createElement('tr'); tr.innerHTML=
-        `<td class="col-fecha">${fmt(l.entregadoAt)}</td>
-         <td class="col-suite"><strong>${c.suite||''}</strong></td>
-         <td class="col-codigo">${c.codigo||''}</td>
-         <td class="col-nombre">${l.nombre||''}</td>
-         <td class="col-cedula">${l.cedula||''}</td>
-         <td class="col-telefono">${l.telefono||''}</td>
-         <td class="col-partido">${(m.local||'')} vs ${(m.visitante||'')}</td>
-         <td class="col-acciones">
-            <button class="ghost devol" data-id="${l.id}">Devolver</button>
-            <button class="danger del" data-id="${l.id}">🗑️</button>
-         </td>`;
+      const c = DB.cards.find(x=>x.id===l.cardId)||{};
+      const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula}`.toLowerCase();
+      if(q && !str.includes(q)) continue;
+      const label = `${l.nombre} (${l.cedula}) (${c.codigo||''}) – ${shortDate(l.entregadoAt)}`;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${label}</td>
+        <td>
+          <button class="ghost devol" data-id="${l.id}">Devolver</button>
+          <button class="danger del" data-id="${l.id}">🗑️</button>
+        </td>`;
       tb.appendChild(tr);
     }
     $$('.devol').forEach(b=>b.addEventListener('click',()=>confirmDevolver(b.dataset.id)));
     $$('.del').forEach(b=>b.addEventListener('click',()=>deleteLoan(b.dataset.id)));
   }
+
   function renderHistorial(){
-    const q = ($('#q').value||'').trim().toLowerCase(); const tb=$('#tblHistorial tbody'); tb.innerHTML='';
+    const q = ($('#q').value||'').trim().toLowerCase();
+    const tb=$('#tblHistorial tbody'); tb.innerHTML='';
     for(const l of [...DB.loans].sort((a,b)=>new Date(b.entregadoAt)-new Date(a.entregadoAt))){
-      const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{};
-      const estado=l.devueltoAt?'<span style="background:#ecfeff;border:1px solid #99f6e4;color:#0f766e;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Devuelto</span>':'<span style="background:#fff0f1;border:1px solid #fecdd3;color:#9f1239;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Prestado</span>';
-      const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
-      const tr=document.createElement('tr'); tr.innerHTML=
-        `<td class="col-fecha">${fmt(l.entregadoAt)}${l.devueltoAt?('<br><span class="muted">⇢ '+fmt(l.devueltoAt)+'</span>'):''}</td>
-         <td class="col-suite"><strong>${c.suite||''}</strong></td>
-         <td class="col-codigo">${c.codigo||''}</td>
-         <td class="col-nombre">${l.nombre||''}</td>
-         <td class="col-cedula">${l.cedula||''}</td>
-         <td class="col-telefono">${l.telefono||''}</td>
-         <td class="col-partido">${(m.local||'')} vs ${(m.visitante||'')}</td>
-         <td>${money(l.precio||0)}</td>
-         <td>${money(l.descuento||0)}</td>
-         <td>${money(l.neto||0)}</td>
-         <td class="col-estado">${estado} <button class="danger del" data-id="${l.id}">🗑️</button></td>`;
+      const c=DB.cards.find(x=>x.id===l.cardId)||{};
+      const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula}`.toLowerCase();
+      if(q && !str.includes(q)) continue;
+      const label = `${l.nombre} (${l.cedula}) (${c.codigo||''}) – ${shortDate(l.entregadoAt)}`;
+      const estado=l.devueltoAt?'<span class="pill">✅ Devuelto</span>':'<span class="pill red">⏳ Prestado</span>';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${label}</td>
+        <td>${estado}</td>
+        <td><button class="danger del" data-id="${l.id}">🗑️</button></td>`;
       tb.appendChild(tr);
     }
     $$('.del').forEach(b=>b.addEventListener('click',()=>deleteLoan(b.dataset.id)));
@@ -542,7 +507,7 @@ if ('serviceWorker' in navigator) {
       const c=DB.cards.find(x=>x.id===l.cardId)||{};
       const m=DB.matches.find(x=>x.id===l.matchId)||{};
       rows.push([
-        l.entregadoAt?new Date(l.entregadoAt).toLocaleString():'', l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'',
+        new Date(l.entregadoAt).toLocaleString(), l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'',
         c.suite||'', c.codigo||'', l.nombre||'', l.cedula||'', l.telefono||'',
         `${m.local||''} vs ${m.visitante||''}`, l.precio||0, l.descuento||0, l.neto||0, l.obs||''
       ]);
