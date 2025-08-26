@@ -28,7 +28,7 @@
       margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;
       background:var(--bg); color:var(--text);
-      overflow-x:hidden; /* evita barra horizontal */
+      overflow-x:hidden;             /* ← evita barra horizontal */
     }
 
     header{
@@ -38,7 +38,7 @@
     }
     header img{
       height:44px; width:auto; border-radius:8px; background:#fff; padding:4px;
-      max-width:24vw; /* nunca más ancho que pantalla */
+      max-width:24vw;
     }
     .title{font-weight:800; line-height:1.1}
 
@@ -71,12 +71,20 @@
     .grid.cols-2{grid-template-columns:1fr}
     @media (min-width:960px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
 
-    /* Tablas móviles con scroll horizontal */
-    .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
-    table{width:100%; border-collapse:collapse; min-width:720px;}
-    th,td{padding:8px; border-bottom:1px dashed #e5e7eb; font-size:14px; text-align:left}
+    /* Tablas 100% fluidas y sin desborde */
+    .table-wrap{width:100%}
+    table{width:100%; border-collapse:collapse}
+    th,td{
+      padding:8px; border-bottom:1px dashed #e5e7eb; font-size:14px; text-align:left;
+      word-break:break-word; white-space:normal;  /* ← envuelve texto largo */
+    }
     th{font-size:12px; text-transform:uppercase; color:#475569}
-    td,th{word-break:break-word}
+
+    /* En pantallas MUY pequeñas, ocultamos algunas columnas para que quepa todo */
+    @media (max-width: 420px){
+      .col-cedula, .col-telefono, .col-partido { display:none; }
+      th, td { font-size:13px; }
+    }
 
     .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
       background:#111827;color:#fff;padding:10px 12px;border-radius:10px;
@@ -141,8 +149,14 @@
       <div class="table-wrap">
         <table id="tblActivos">
           <thead><tr>
-            <th>Fecha entrega</th><th>Suite</th><th>Código</th><th>Nombre</th>
-            <th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Acciones</th>
+            <th class="col-fecha">Fecha entrega</th>
+            <th class="col-suite">Suite</th>
+            <th class="col-codigo">Código</th>
+            <th class="col-nombre">Nombre</th>
+            <th class="col-cedula">Cédula</th>
+            <th class="col-telefono">Teléfono</th>
+            <th class="col-partido">Partido</th>
+            <th class="col-acciones">Acciones</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -154,8 +168,14 @@
       <div class="table-wrap">
         <table id="tblHistorial">
           <thead><tr>
-            <th>Fecha</th><th>Suite</th><th>Código</th><th>Nombre</th>
-            <th>Cédula</th><th>Teléfono</th><th>Partido</th><th>Estado</th>
+            <th class="col-fecha">Fecha</th>
+            <th class="col-suite">Suite</th>
+            <th class="col-codigo">Código</th>
+            <th class="col-nombre">Nombre</th>
+            <th class="col-cedula">Cédula</th>
+            <th class="col-telefono">Teléfono</th>
+            <th class="col-partido">Partido</th>
+            <th class="col-estado">Estado</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -304,7 +324,14 @@ if ('serviceWorker' in navigator) {
       const c = DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{};
       const str = `${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
       const tr=document.createElement('tr'); tr.innerHTML=
-        `<td>${fmt(l.entregadoAt)}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td><button class="ghost devol" data-id="${l.id}">Devolver</button></td>`;
+        `<td class="col-fecha">${fmt(l.entregadoAt)}</td>
+         <td class="col-suite"><strong>${c.suite||''}</strong></td>
+         <td class="col-codigo">${c.codigo||''}</td>
+         <td class="col-nombre">${l.nombre||''}</td>
+         <td class="col-cedula">${l.cedula||''}</td>
+         <td class="col-telefono">${l.telefono||''}</td>
+         <td class="col-partido">${(m.local||'')} vs ${(m.visitante||'')}</td>
+         <td class="col-acciones"><button class="ghost devol" data-id="${l.id}">Devolver</button></td>`;
       tb.appendChild(tr);
     }
     $$('.devol').forEach(b=>b.addEventListener('click',()=>confirmDevolver(b.dataset.id)));
@@ -316,7 +343,14 @@ if ('serviceWorker' in navigator) {
       const estado=l.devueltoAt?'<span class="pill" style="background:#ecfeff;border:1px solid #99f6e4;color:#0f766e;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Devuelto</span>':'<span class="pill" style="background:#fff0f1;border:1px solid #fecdd3;color:#9f1239;padding:.15rem .5rem;border-radius:999px;font-size:12px;font-weight:700">Prestado</span>';
       const str=`${c.suite} ${c.codigo} ${l.nombre} ${l.cedula} ${l.telefono} ${(m.local||'')} ${(m.visitante||'')}`.toLowerCase(); if(q && !str.includes(q)) continue;
       const tr=document.createElement('tr'); tr.innerHTML=
-        `<td>${fmt(l.entregadoAt)}${l.devueltoAt?('<br><span class="muted">⇢ '+fmt(l.devueltoAt)+'</span>'):''}</td><td><strong>${c.suite||''}</strong></td><td>${c.codigo||''}</td><td>${l.nombre||''}</td><td>${l.cedula||''}</td><td>${l.telefono||''}</td><td>${(m.local||'')} vs ${(m.visitante||'')}</td><td>${estado}</td>`;
+        `<td class="col-fecha">${fmt(l.entregadoAt)}${l.devueltoAt?('<br><span class="muted">⇢ '+fmt(l.devueltoAt)+'</span>'):''}</td>
+         <td class="col-suite"><strong>${c.suite||''}</strong></td>
+         <td class="col-codigo">${c.codigo||''}</td>
+         <td class="col-nombre">${l.nombre||''}</td>
+         <td class="col-cedula">${l.cedula||''}</td>
+         <td class="col-telefono">${l.telefono||''}</td>
+         <td class="col-partido">${(m.local||'')} vs ${(m.visitante||'')}</td>
+         <td class="col-estado">${estado}</td>`;
       tb.appendChild(tr);
     }
   }
@@ -346,7 +380,7 @@ if ('serviceWorker' in navigator) {
   function handleScan(code,suite){ let card=null; if(code){ card=DB.cards.find(c=>c.codigo===code) } if(!card && suite){ card=DB.cards.find(c=>c.suite.toLowerCase()===suite.toLowerCase()) } if(!card){ if(!suite){ const s=prompt('Tarjeta no registrada. Escribe la suite para asociar:','E-'); if(!s) return; suite=s.trim() } if(!code){ const c=prompt('Código de barras (o deja vacío):',''); if(c) code=c.trim() } openTarjeta(suite||'', code||''); return } const activo = DB.loans.find(l=>l.cardId===card.id && !l.devueltoAt); if(activo){ confirmDevolver(activo.id) } else { openPrestar(card) } }
 
   // Exportar / Respaldo
-  function exportCSV(){ const rows=[['Fecha entrega','Fecha devolución','Suite','Código','Nombre','Cédula','Teléfono','Partido','Observaciones']]; for(const l of DB.loans){ const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; rows.push([ l.entregadoAt?new Date(l.entregadoAt).toLocaleString():'', l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'', c.suite||'', c.codigo||'', l.nombre||'', l.cedula||'', l.telefono||'', `${m.local||''} vs ${m.visitante||''}`, l.obs||'' ]) } const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='prestamos_suites.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('CSV generado') }
+  function exportCSV(){ const rows=[['Fecha entrega','Fecha devolución','Suite','Código','Nombre','Cédula','Teléfono','Partido','Observaciones']]; for(const l of DB.loans){ const c=DB.cards.find(x=>x.id===l.cardId)||{}; const m=DB.matches.find(x=>x.id===l.matchId)||{}; rows.push([ l.entregadoAt?new Date(l.entregadoAt).toLocaleString():'', l.devueltoAt?new Date(l.devueltoAt).toLocaleString():'', c.suite||'', c.codigo||'', l.nombre||'', l.cedula||'', l.telefono||'', `${m.local||''} vs ${m.visitante||''}`, l.obs||'' ]) } const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join('\n'===0)).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='prestamos_suites.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('CSV generado') }
   function backupJSON(){ const data={cards:DB.cards,matches:DB.matches,loans:DB.loans,currentMatchId:load('dcal_currentMatchId',null)}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup_suites.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); toast('Respaldo descargado') }
 
   // Logo
